@@ -1,0 +1,56 @@
+CONCLUSIONES - PRUEBA DE CARGA SERVICIO DE LOGIN
+================================================
+
+Servicio: POST https://fakestoreapi.com/auth/login
+Fecha de ejecución: 24/11/2026
+Herramienta: k6 v2.4.0
+Carga: 25 peticiones por segundo durante 3 minutos, con los 5 usuarios del csv
+
+
+Resultados
+----------
+Peticiones enviadas:          4501
+TPS alcanzado:                24,93
+Tiempo de respuesta promedio: 377 ms
+Mediana:                      367 ms
+p(90):                        415 ms
+p(95):                        437 ms
+Máximo:                       757 ms
+Errores:                      0 (0 %)
+
+Las tres validaciones pedidas se cumplen:
+- TPS: se pedían al menos 20 y se llegó a 24,93.
+- Tiempo de respuesta: el máximo permitido era 1,5 s y la respuesta más lenta tardó 757 ms.
+- Errores: el límite era 3 % y no hubo ninguno.
+
+
+Hallazgos
+---------
+1. Todas las peticiones respondieron 201 con el token. No hubo errores ni timeouts.
+
+2. Los tiempos fueron bastante estables durante toda la prueba, casi todos entre 330 y 450 ms.
+   No se vio que el servicio se fuera degradando con el tiempo.
+
+3. Casi todo el tiempo de respuesta es espera del servidor (http_req_waiting de 376 ms en promedio).
+   La conexión y el TLS solo pesan en las primeras peticiones porque después se reutilizan.
+
+4. Para sostener 25 TPS solo se necesitaron entre 8 y 13 usuarios virtuales, así que el equipo
+   desde donde se lanzó la prueba no fue una limitante.
+
+5. Los 5 usuarios del csv funcionan. Probé también con un usuario inválido y el servicio
+   responde 401 con el mensaje "username or password is incorrect".
+
+6. El login responde 201 (Created) en vez de 200. No afecta la prueba, el script acepta los dos,
+   pero lo dejo anotado porque no es lo habitual para un login.
+
+
+Conclusión
+----------
+El servicio de login soporta sin problemas la carga pedida. Con 25 TPS los tiempos de respuesta
+quedan muy por debajo de 1,5 s, así que hay margen para más carga.
+
+Hay que tener en cuenta que FakeStoreAPI es un servicio público de pruebas, entonces los tiempos
+pueden variar según la red y la carga que tenga en ese momento. Por eso tampoco subí la carga
+más allá de lo que pedía el ejercicio. En un ambiente propio lo siguiente sería hacer una prueba
+de estrés para encontrar el límite del servicio y una prueba de mayor duración, revisando a la par
+el consumo de CPU, memoria y base de datos del servidor.
